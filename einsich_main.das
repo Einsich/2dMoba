@@ -56,7 +56,7 @@ def initialize(hard:bool)
     let allianceIdx = add_image("tileset/alliance.png")
     let hordeIdx = add_image("tileset/horde.png")
     effectsIdx = add_image("tileset/effects.png")
- 
+    playerHero = int2(0, 2)
     if hard 
         create_camera()
         init_map() 
@@ -543,13 +543,16 @@ def draw_melee_sector(position : float2; attackRadius, attackSector : float; dir
     let a = PI * (0.5-float(direction) * 0.25)
     let a0 = a + attackSector * 0.5
     let a1 = a - attackSector * 0.5
-    let p = world_to_screen_pos(position + float2(cos(a), sin(a)) * attackRadius)
     let p0 = world_to_screen_pos(position + float2(cos(a0), sin(a0)) * attackRadius)
-    let p1 = world_to_screen_pos(position + float2(cos(a1), sin(a1)) * attackRadius)
-    line(screenPos.x, screenPos.y, p0.x, p0.y, 0xFFFF0000)
-    line(screenPos.x, screenPos.y, p1.x, p1.y, 0xFFFF0000)
-    line(p0.x, p0.y, p.x, p.y, 0xFFFF0000)
-    line(p.x, p.y, p1.x, p1.y, 0xFFFF0000)
+    let N = 4
+    var p_ = p0
+    line(screenPos.x, screenPos.y, p_.x, p_.y, 0xFFFF0000)
+    for i in range(N)
+        let ai = lerp(a0, a1, float(i + 1) / float(N))
+        let pi = world_to_screen_pos(position + float2(cos(ai), sin(ai)) * attackRadius)
+        line(pi.x, pi.y, p_.x, p_.y, 0xFFFF0000)
+        p_ = pi
+    line(screenPos.x, screenPos.y, p_.x, p_.y, 0xFFFF0000)
 
 [decs(stage = latedraw)]
 def draw_hpbars(var position : float2; collisionRadius, hp, hpMax: float; team : int; isActive : bool)

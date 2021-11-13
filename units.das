@@ -33,7 +33,7 @@ struct Animation
 var animations : array<Animation>
 var images : array<Image>
 
-
+var playerHero : int2
         
 def add_image(path : string)
     let lastIdx = length(images)
@@ -116,30 +116,50 @@ def init_unit(var cmp;
     cmp |> set("lookAngle", 0.0)
     cmp |> set("heroKillerTeam", -1)
 
-def create_hero(animIdx, team, hero, level: int;
-        scale, speed, attackSpeed, hpMax, hpReduction, damage, xp, nextLevel : float;
-        position : float2)
+struct HeroInfo
+    name : string
+    animId : int
+    speed, attackSpeed, hpMax, hpReduction, damage : float
+    attackRange, attackSector, shellSpeed : float
+    shellType : int
+    melee : bool
+
+
+def spawn_hero(team : int; position : float2)
     
+    let heroList = [[HeroInfo
+        name = "Light knight", animId = knightAnimIdx, speed = 3.0, melee = true,
+        attackSpeed = 1.5, hpMax = 1000.0, hpReduction = 19.0, damage = 20.0,
+        attackRange = 1.2, attackSector = PI * 0.6;
+
+        name = "Grypho rider", animId = gryphonAnimIdx, speed = 3.3, melee = false,
+        attackSpeed = 1.5, hpMax = 800.0, hpReduction = 15.0, damage = 15.0,
+        attackRange = 3.0, shellSpeed = 3.5, shellType = 0;
+
+        name = "Fallen daemon", animId = daemonAnimIdx, speed = 3.0, melee = true,
+        attackSpeed = 1.5, hpMax = 1000.0, hpReduction = 15.0, damage = 20.0,
+        attackRange = 1.2, attackSector = PI * 0.6;
+
+        name = "Death knight", animId = dkAnimIdx, speed = 3.3, melee = false,
+        attackSpeed = 1.5, hpMax = 800.0, hpReduction = 19.0, damage = 15.0,
+        attackRange = 3.0, shellSpeed = 3.5, shellType = 5
+    ]]
+
+    let heroIdx = team == 0 ? playerHero.x : playerHero.y
+    let info = heroList[heroIdx]
     create_entity <| @ (eid, cmp)
         cmp |> set("eid", eid)
-        cmp |> set("hero", hero)
+        cmp |> set("hero", heroIdx)
         cmp |> set("isCreep", false)
-        cmp |> set("xp", xp)
-        cmp |> set("level", level)
-        cmp |> set("nextLevel", nextLevel)
-        init_unit(cmp, animIdx, team, scale, speed, attackSpeed, hpMax, hpReduction, damage, position)
-        if hero == 0
-            init_ranger(cmp, 3.0, 3.5, 0)
-        elif hero == 1
-            init_ranger(cmp, 3.0, 3.5, 5)
-            //init_melee(cmp, 1.05, PI * 0.5)
+        cmp |> set("xp", 0.0)
+        cmp |> set("level", 1)
+        cmp |> set("nextLevel", 10.0)
+        init_unit(cmp, info.animId, team, 1.0, info.speed, info.attackSpeed, info.hpMax, info.hpReduction, info.damage, position)
+        if info.melee
+            init_melee(cmp, info.attackRange, info.attackSector)
+        else
+            init_ranger(cmp, info.attackRange, info.shellSpeed, info.shellType)
 
-def spawn_hero(targetTeam : int; position : float2)
-    
-    if targetTeam == 0
-        create_hero(gryphonAnimIdx, 0, 0, 1, 1.0, 3.0, 1.5, 800.0, 10.0, 15.0, 0.0, 10.0, position)
-    else
-        create_hero(dkAnimIdx, 1, 1, 1, 1.0, 3.0, 1.5, 800.0, 10.0, 15.0, 0.0, 10.0, position)
 
 struct Creep
     scale, speed, attackSpeed, hpMax, hpReduction, damage : float
