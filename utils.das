@@ -5,6 +5,7 @@ var cameraScale : float = 100.0
 var cemaraPosition : float2 = float2(1,1)
 var seed = int4(10,1,100,1314)
 var killsStatictic : int2
+var towersFalls : int2
 var defeatTeam = -1
 
 def world_to_screen_pos(var pos : float2)

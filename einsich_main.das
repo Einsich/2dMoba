@@ -62,6 +62,17 @@ def initialize(hard:bool)
         init_map() 
         create_base(allianceIdx, 0)
         create_base(hordeIdx, 1)
+        let offsets = [[float2
+            float2(-0.9, -0.9);float2(0.0, -0.9);float2(0.9, -0.9);
+            float2(-0.9, 0.9);float2(0.0, 0.9);float2(0.9, 0.9)
+        ]]
+        let types = [[int
+            4;3;2;
+            4;5;2
+        ]]
+        for i in range(6)
+            let offset = float2(float(mapM)*0.5,float(mapN)*0.5) * offsets[i]
+            create_neutral_camp(offset, types[i])
         commit()
 
     return
@@ -168,28 +179,49 @@ def update_building_destroy(eid : EntityId; hp : float; isBuilding : bool; posit
                 xp += heroKillerTeam == team ? 50.0 : 10.0
         if buildingType == CASTLE
             defeatTeam = team
+        elif buildingType == TOWER
+            if team == 0
+                towersFalls.x += 1
+            else
+                towersFalls.y += 1
         delete_entity(eid)
 
+        
+    
 [decs(stage = logic)]
-def update_barrack_spawn(isBarrack : bool;
+def update_barrack_spawn(
+        eid : EntityId;
+        isBarrack : bool;
         var reinforcementProgress : float&;
         reinforcementTime, collisionRadius: float;
         team : int;
-        position : float2)
-    reinforcementProgress += get_delta_time() / reinforcementTime
-    if reinforcementProgress >= 1.0
+        position, spawnOffset : float2)
+    if reinforcementProgress < 1.0
+        reinforcementProgress += get_delta_time() / reinforcementTime
+    else
+        var blocked = false
+        if team > 1
+            let myPos = position
+            query() <| $(position : float2; isActive : bool)
+                if !isActive
+                    return
+                if length(position - myPos) < collisionRadius
+                    blocked = true
+            
         reinforcementProgress = 0.0
-        let offset = team == 0 ? 1.0 : -1.0
-        spawn_creeps(team, position + float2(offset * collisionRadius * 2.0, 0.0))
+        if !blocked
+            let level = team < 2 ? (team == 0 ? towersFalls.x : towersFalls.y) : 0
+            spawn_creeps(team, level, position + spawnOffset, eid)
 
-def update_unit(var position : float2&#;
+
+def update_unit(var position : float2&;
         speed, attackSpeed, dt : float;
         attackTime : int;
-        var direction, state : int&#;
-        var animProgress, lookAngle : float&#;
+        var direction, state : int&;
+        var animProgress, lookAngle : float&;
         dir : float2;
         wantAttack, isActive : bool;
-        var madeAttack : bool&#)
+        var madeAttack : bool&)
     madeAttack = false
     if state == DEATH || !isActive
         return
@@ -259,13 +291,14 @@ def controll_hero(var position : float2&;
 
 [decs(stage = controll)]
 def controll_creeps(
+        spawnEid : EntityId;
         var position : float2&;
-        speed, attackSpeed, attackRadius : float;
+        speed, attackSpeed, attackRadius, agrRadius : float;
         team, attackTime : int;
         var madeAttack : bool&;
         var direction, state : int&;
         var animProgress, lookAngle : float&;
-        isCreep, isActive : bool)
+        isCreep, isActive, isNeutral : bool)
     if !isCreep
         return
     let dt = get_delta_time()
@@ -275,14 +308,29 @@ def controll_creeps(
     
     var dir = float2(0,0)
     var wantToAttack = false;
+    var target = INVALID_ENTITY_ID
     query <| $ (eid : EntityId; position : float2; hp, collisionRadius : float; team : int)
         if team != myTeam && hp > 0.0
             let distance = length(position - myPos)
-            if distance < maxDist
+            if distance < maxDist && distance < agrRadius
                 maxDist = distance
                 dir = position - myPos
                 wantToAttack = distance < collisionRadius + attackRadius
-    
+                target = eid
+    if target == INVALID_ENTITY_ID
+        if !isNeutral
+            maxDist = 10000.0
+            query <| $ (position : float2; team : int; isBuilding : bool)
+                if team != myTeam
+                    let distance = length(position - myPos)
+                    if distance < maxDist 
+                        maxDist = distance
+                        dir = position - myPos
+        else
+            query(spawnEid) <| $(position : float2; collisionRadius : float)
+                if length(position - myPos) > collisionRadius*0.6
+                    dir = position - myPos
+
 
     update_unit(position, speed, attackSpeed,
     dt, attackTime, direction,
@@ -390,7 +438,7 @@ def update_camera(isCamera : bool; var target0, target1 : float2&)
     if delta.y == 0.0
         delta.y = 0.01
     let maxDist = min(float(get_screen_width()) / abs(delta.x), float(get_screen_height()) / abs(delta.y)) 
-    cameraScale = min(maxDist * 0.9, 100.0)
+    cameraScale = min(maxDist * 0.8, 100.0)
 
 
 [decs(stage = logic)]
@@ -408,17 +456,18 @@ def update_shells(eid : EntityId;
         delete_entity(eid)
         return
     let myPos = position
-    let found = find_query() <| $ (position : float2; team : int; var heroKillerTeam : int&;
+    var found = false
+    query() <| $ (position : float2; team : int; var heroKillerTeam : int&;
             collisionRadius : float; var hp : float&;
             isCollidable : bool; eid : EntityId)
-        if myTeam != team && isCollidable
+        if !found && myTeam != team && isCollidable
             let dir = position - myPos
             let dirLen = length(dir)
             if dirLen < radius + collisionRadius
                 hp -= damage
                 if fromHero
                     heroKillerTeam = myTeam
-                return true
+                found = true
     if found
         delete_entity(eid)
     
@@ -455,7 +504,6 @@ def draw_buildings(sprite : Sprite; position, scale : float2; team : int; orient
 
     var screenPos = world_to_screen_pos(position)
     let screenScale = world_to_screen_size(scale)
-    //screenPos -= screenScale * 0.5
     images[sprite.imageIdx] |> draw_image_transformed(screenPos.x, screenPos.y, sprite.region, make_color(1.0), screenScale, -orientation)
     
 [decs(stage = draw_background)]
@@ -591,5 +639,6 @@ def draw
     decs_stage("draw_background")
     decs_stage("draw")
     decs_stage("latedraw")
-    //decs_stage("debugdraw")
+    if get_key(VK_P)
+        decs_stage("debugdraw")
     return

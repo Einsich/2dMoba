@@ -145,14 +145,26 @@ struct Creep
     scale, speed, attackSpeed, hpMax, hpReduction, damage : float
     rangeType, animId : int
 
-def create_creep(team : int;
+def create_creep(team, level : int;
         var creep : Creep;
-        position : float2)
+        position : float2;
+        spawnEid : EntityId)
     create_entity <| @ (eid, cmp)
         cmp |> set("eid", eid)
         cmp |> set("isCreep", true)
-        
-        init_unit(cmp, creep.animId, team, creep.scale, creep.speed, creep.attackSpeed, creep.hpMax, creep.hpReduction, creep.damage, position)
+        cmp |> set("agrRadius", 3.4)
+        cmp |> set("spawnEid", spawnEid)
+        cmp |> set("isNeutral", team > 1)
+        let levelBonus = 1.0 + float(level) * 0.2
+        let levelScale = 1.0 + float(level) * 0.1
+        init_unit(cmp, creep.animId, team,
+            creep.scale * levelScale,
+            creep.speed,
+            creep.attackSpeed * levelBonus,
+            creep.hpMax * levelBonus,
+            creep.hpReduction * levelBonus,
+            creep.damage * levelBonus,
+            position)
         if creep.rangeType < 0
             init_melee(cmp, 0.75, PI * 0.5)
         else
@@ -161,25 +173,31 @@ def create_creep(team : int;
             init_ranger(cmp, attackRadius, shellSpeed, creep.rangeType)
 
 var unitSeed = int4(908, 008,77, 898)
-def spawn_creeps(team : int; position : float2)
-    var creeps : Creep[2][4];
-    creeps[0] = [[Creep[4] 
+def spawn_creeps(team, level : int; position : float2; eid : EntityId)
+    var creeps = [[Creep
         scale = 1.0, speed = 1.2, attackSpeed = 1.2, hpMax = 250.0, hpReduction = 4.0, damage = 10.0, rangeType = -1, animId = peasantAnimIdx;
-        scale = 1.0, speed = 1.4, attackSpeed = 1.3, hpMax = 250.0, hpReduction = 4.0, damage = 15.0, rangeType =  1, animId = elfAnimIdx;
         scale = 1.0, speed = 1.2, attackSpeed = 1.8, hpMax = 500.0, hpReduction = 10.0, damage = 20.0, rangeType = -1, animId = footmanAnimIdx;
-        scale = 1.0, speed = 1.1, attackSpeed = 0.8, hpMax = 100.0, hpReduction = 2.0, damage = 30.0, rangeType =  2, animId = mageAnimIdx
-    ]]
-    
-    creeps[1] = [[Creep[4] 
+        scale = 1.0, speed = 1.4, attackSpeed = 1.3, hpMax = 250.0, hpReduction = 4.0, damage = 15.0, rangeType =  1, animId = elfAnimIdx;
+        scale = 1.0, speed = 1.1, attackSpeed = 0.8, hpMax = 100.0, hpReduction = 2.0, damage = 30.0, rangeType =  2, animId = mageAnimIdx;
+
         scale = 1.0, speed = 1.2, attackSpeed = 1.2, hpMax = 250.0, hpReduction = 4.0, damage = 10.0, rangeType = -1, animId = peonAnimIdx;
-        scale = 1.0, speed = 1.5, attackSpeed = 1.1, hpMax = 250.0, hpReduction = 10.0, damage = 18.0, rangeType =  3, animId = trollAnimIdx;
         scale = 1.0, speed = 1.2, attackSpeed = 1.8, hpMax = 500.0, hpReduction = 10.0, damage = 20.0, rangeType = -1, animId = orcAnimIdx;
-        scale = 1.0, speed = 0.7, attackSpeed = 0.7, hpMax = 400.0, hpReduction = 15.0, damage = 15.0, rangeType =  4, animId = ogreAnimIdx
+        scale = 1.0, speed = 1.5, attackSpeed = 1.1, hpMax = 250.0, hpReduction = 10.0, damage = 18.0, rangeType =  3, animId = trollAnimIdx;
+        scale = 1.0, speed = 0.7, attackSpeed = 0.7, hpMax = 400.0, hpReduction = 15.0, damage = 30.0, rangeType =  4, animId = ogreAnimIdx
     ]]
-    let offsets = [[float2[5] float2(0,0);float2(1,0);float2(1,1);float2(1,-1);float2(0,-1)]]
-    for i in range(5)
-        let rand = random_int(unitSeed) % 4
-        var offset = offsets[i]
-        if team == 1
-            offset.x = -offset.x
-        create_creep(team, creeps[team][rand], position + offset)
+    var creepsTypes : array<int>[6] 
+
+    creepsTypes[0] <- [{int 1;1;1;2;2}]
+    creepsTypes[1] <- [{int 5;5;5;6;6}]
+    creepsTypes[2] <- [{int 0;0;0;0}]
+    creepsTypes[3] <- [{int 0;0;0;0;3;3}]
+    creepsTypes[4] <- [{int 4;4;4;4}]
+    creepsTypes[5] <- [{int 4;4;4;4;7;7}]
+    
+    let creepsCount = length(creepsTypes[team])
+    for i in range(creepsCount)
+        let randInDisk = random_in_unit_disk(unitSeed)
+        let offset = float2(randInDisk.x, randInDisk.y)
+
+        create_creep(team, level, creeps[creepsTypes[team][i]], position + offset, eid)
+    return creepsCount
