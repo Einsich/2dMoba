@@ -56,8 +56,8 @@ def initialize(hard:bool)
     let allianceIdx = add_image("tileset/alliance.png")
     let hordeIdx = add_image("tileset/horde.png")
     effectsIdx = add_image("tileset/effects.png")
-    playerHero = int2(0, 2)
     if hard 
+        playerHero = int2(0, 2)
         create_camera()
         init_map() 
         create_base(allianceIdx, 0)
@@ -438,7 +438,7 @@ def update_camera(isCamera : bool; var target0, target1 : float2&)
     if delta.y == 0.0
         delta.y = 0.01
     let maxDist = min(float(get_screen_width()) / abs(delta.x), float(get_screen_height()) / abs(delta.y)) 
-    cameraScale = min(maxDist * 0.8, 100.0)
+    cameraScale = min(maxDist * 0.74, 100.0)
 
 
 [decs(stage = logic)]
@@ -561,18 +561,20 @@ def draw_hpbars(var position : float2; collisionRadius, hp, hpMax: float; team :
     let screenScale = world_to_screen_size(float2(collisionRadius))
     let screenPos = world_to_screen_pos(position - float2(collisionRadius)) 
     let width = screenScale.x*2.0
-    fill_rect(screenPos.x, screenPos.y, width, 8.0, 0xFFF0F0F0)
-    fill_rect(screenPos.x+1.0, screenPos.y+1.0, width-2.0, 6.0, 0xFF000000)
-    fill_rect(screenPos.x+1.0, screenPos.y+1.0, width * hp / hpMax-2.0, 6.0, team == 1 ? 0xFF8E1600 : 0xFF378805)
+    let height = min(screenScale.x*0.3, 8.0)
+    fill_rect(screenPos.x, screenPos.y, width, height, 0xFFF0F0F0)
+    fill_rect(screenPos.x+1.0, screenPos.y+1.0, width-2.0, height - 2.0, 0xFF000000)
+    let color = team == 0 ? 0xFF378805 : (team == 1 ? 0xFF8E1600 : 0xFFFFA701)
+    fill_rect(screenPos.x+1.0, screenPos.y+1.0, width * hp / hpMax-2.0,  height - 2.0, color)
 
 [decs(stage = latedraw)]
 def draw_xpbars(var position : float2; collisionRadius, xp, nextLevel, hp: float; level, hero : int; isActive : bool)
     if hp <= 0.0 || !isActive
         return
-    let height = 10.0
     let screenScale = world_to_screen_size(float2(collisionRadius))
     let screenPos = world_to_screen_pos(position - float2(collisionRadius)) + float2(0, 10)
     let width = screenScale.x*2.0
+    let height = min(screenScale.x*0.3, 8.0)
     fill_rect(screenPos.x, screenPos.y, width, height, 0xFFF0F0F0)
     fill_rect(screenPos.x+1.0, screenPos.y+1.0, width-2.0, height-2.0, 0xFF000000)
     if xp > 0.0
