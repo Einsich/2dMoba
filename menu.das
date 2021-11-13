@@ -16,7 +16,7 @@ var mousePos : int2
 def load_menu_pictures()
     menuBackGround <- create_image("tileset/Warcraft.jpg")
     players <- [[Player
-        descr = "Movement - WASD\nAttack - Space",
+        descr = "Left player - alliance\nMovement - WASD\nAttack - Space",
         pickedHero = -1,
         color = 0xFF378805,
         heroIdx <- [{int 0;1}],
@@ -29,7 +29,7 @@ def load_menu_pictures()
             "Grypho\nRange hero."
         }];
     
-        descr = "Movement - Arrows\nAttack - Right Ctrl",
+        descr = "Right player - horde\nMovement - Arrows\nAttack - Right Ctrl",
         pickedHero = -1, 
         color = 0xFF8E1600,
         heroIdx <- [{int 2;3}],
