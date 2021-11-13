@@ -267,7 +267,8 @@ def controll_hero(var position : float2&;
         var madeAttack : bool&; isActive : bool;
         var direction, state : int&;
         var animProgress, lookAngle : float&)
-    
+    if defeatTeam >= 0
+        return
     var dir : float2
     var wantToAttack = false
     if team == 0
@@ -305,7 +306,7 @@ def controll_creeps(
         var direction, state : int&;
         var animProgress, lookAngle : float&;
         isCreep, isActive, isNeutral : bool)
-    if !isCreep
+    if !isCreep || defeatTeam >= 0
         return
     let dt = get_delta_time()
     let myTeam = team
@@ -378,8 +379,8 @@ def made_melee_attack(position : float2; team : int; attackRadius, attackSector,
         let myPos = position
         var target : EntityId
         var minDist = 10000.0
-        query() <| $ (eid : EntityId; position : float2; team : int; collisionRadius : float)
-            if myTeam != team
+        query() <| $ (eid : EntityId; position : float2; team : int; collisionRadius, hp : float)
+            if myTeam != team && hp > 0.0
                 let dir = position - myPos
                 let dirLen = length(dir)
                 if dirLen < attackRadius + collisionRadius
