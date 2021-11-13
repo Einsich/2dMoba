@@ -9,11 +9,12 @@ require utils
 require buildings
 require map
 require units
+require menu
 
 
+var gameStarted : bool
 
-
-var effectsIdx : int
+var effectsIdx, allianceIdx, hordeIdx : int 
 
 def create_shell(team, typeIdx : int;
         position : float2;
@@ -50,32 +51,37 @@ def initialize(hard:bool)
     set_resolution(get_desktop_width(), get_desktop_height())
     aspectRatio = float(get_screen_width()) /  float(get_screen_height())
     set_window_title("Einsich") 
+
     init_tiles()
     import_animations()
-
-    let allianceIdx = add_image("tileset/alliance.png")
-    let hordeIdx = add_image("tileset/horde.png")
+    allianceIdx = add_image("tileset/alliance.png")
+    hordeIdx = add_image("tileset/horde.png")
     effectsIdx = add_image("tileset/effects.png")
+    load_menu_pictures()
     if hard 
-        playerHero = int2(0, 2)
-        create_camera()
-        init_map() 
-        create_base(allianceIdx, 0)
-        create_base(hordeIdx, 1)
-        let offsets = [[float2
-            float2(-0.9, -0.9);float2(0.0, -0.9);float2(0.9, -0.9);
-            float2(-0.9, 0.9);float2(0.0, 0.9);float2(0.9, 0.9)
-        ]]
-        let types = [[int
-            4;3;2;
-            4;5;2
-        ]]
-        for i in range(6)
-            let offset = float2(float(mapM)*0.5,float(mapN)*0.5) * offsets[i]
-            create_neutral_camp(offset, types[i])
-        commit()
+        gameStarted = false
 
-    return
+
+def start_game()
+ 
+    gameStarted = true
+    create_camera()
+    init_map() 
+    create_base(allianceIdx, 0)
+    create_base(hordeIdx, 1)
+    let offsets = [[float2
+        float2(-0.9, -0.9);float2(0.0, -0.9);float2(0.9, -0.9);
+        float2(-0.9, 0.9);float2(0.0, 0.9);float2(0.9, 0.9)
+    ]]
+    let types = [[int
+        4;3;2;
+        4;5;2
+    ]]
+    for i in range(6)
+        let offset = float2(float(mapM)*0.5,float(mapN)*0.5) * offsets[i]
+        create_neutral_camp(offset, types[i])
+    commit()
+
 [decs(stage = logic)]
 def health_hp( hpMax, hpReduction : float; var hp : float&)
     if hp > 0.0
@@ -561,7 +567,7 @@ def draw_hpbars(var position : float2; collisionRadius, hp, hpMax: float; team :
     let screenScale = world_to_screen_size(float2(collisionRadius))
     let screenPos = world_to_screen_pos(position - float2(collisionRadius)) 
     let width = screenScale.x*2.0
-    let height = min(screenScale.x*0.3, 8.0)
+    let height = max(min(screenScale.x*0.3, 8.0), 5.0)
     fill_rect(screenPos.x, screenPos.y, width, height, 0xFFF0F0F0)
     fill_rect(screenPos.x+1.0, screenPos.y+1.0, width-2.0, height - 2.0, 0xFF000000)
     let color = team == 0 ? 0xFF378805 : (team == 1 ? 0xFF8E1600 : 0xFFFFA701)
@@ -574,7 +580,7 @@ def draw_xpbars(var position : float2; collisionRadius, xp, nextLevel, hp: float
     let screenScale = world_to_screen_size(float2(collisionRadius))
     let screenPos = world_to_screen_pos(position - float2(collisionRadius)) + float2(0, 10)
     let width = screenScale.x*2.0
-    let height = min(screenScale.x*0.3, 8.0)
+    let height = max(min(screenScale.x*0.3, 8.0), 5.0)
     fill_rect(screenPos.x, screenPos.y, width, height, 0xFFF0F0F0)
     fill_rect(screenPos.x+1.0, screenPos.y+1.0, width-2.0, height-2.0, 0xFF000000)
     if xp > 0.0
@@ -641,6 +647,9 @@ def act(dt: float)
 def draw
     setup_2d_camera(float2(0, 0), 1.0)
     enable_alpha_blend()
+    if !gameStarted
+        if pick_hero(playerHero)
+            start_game()
     decs_stage("draw_background")
     decs_stage("draw")
     decs_stage("latedraw")

@@ -33,7 +33,7 @@ struct Animation
 var animations : array<Animation>
 var images : array<Image>
 
-var playerHero : int2
+var playerHero : int2 = int2(-1, -1)
         
 def add_image(path : string)
     let lastIdx = length(images)
