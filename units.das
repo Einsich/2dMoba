@@ -175,7 +175,7 @@ def create_creep(team, level : int;
         cmp |> set("agrRadius", 3.4)
         cmp |> set("spawnEid", spawnEid)
         cmp |> set("isNeutral", team > 1)
-        let levelBonus = 1.0 + float(level) * 0.2
+        let levelBonus = 1.0 + float(level) * 0.13
         let levelScale = 1.0 + float(level) * 0.1
         init_unit(cmp, creep.animId, team,
             creep.scale * levelScale,
