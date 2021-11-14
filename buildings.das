@@ -93,9 +93,9 @@ def create_base(texId, team : int)
     ]]
     let BuildingPos = [[float2[BuildingInstanceCount]
         float2(Border-1.0, 0.0);
-        float2(Border-3.5, 0.0);
-        float2(Border-4.5, 1.5);
-        float2(Border-4.5, -1.5);
+        float2(Border-3.0, 0.0);
+        float2(Border-4.0, 1.5);
+        float2(Border-4.0, -1.5);
         float2(Border*0.3, 2.0);
         float2(Border*0.3, -2.0)
     ]]
