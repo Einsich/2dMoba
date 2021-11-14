@@ -66,10 +66,6 @@ def text(var x, y : int; size : int2; text : string)
 
 def pick_hero(var playerHero : int2&)
 
-
-    if (get_key(VK_RETURN))
-        playerHero = int2(1, 2)
-        return true
     let screenSize = int2(get_screen_width(), get_screen_height())
     let screenHalf = float2(screenSize.x, screenSize.y) * 0.5
     let width = 200
